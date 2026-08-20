@@ -22,6 +22,14 @@ Web pak běží na <http://localhost:3000>.
 Push do `main` → Vercel automaticky sestaví a nasadí. Žádné nastavení není
 potřeba, Vercel Next.js pozná sám.
 
+### ⚠️ Doména
+
+V `lib/obsah.ts` je nahoře `urlWebu` nastavené na zástupné
+`https://csz-novosedlice.cz`. **Po zprovoznění skutečné domény ji tam přepište** —
+používá se v `sitemap.xml`, `robots.txt` a v náhledech odkazů na sociálních
+sítích. Případně jde místo úpravy kódu nastavit na Vercelu proměnnou prostředí
+`NEXT_PUBLIC_URL_WEBU`.
+
 ---
 
 ## Kde co upravit

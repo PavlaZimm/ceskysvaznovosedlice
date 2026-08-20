@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import Hlavicka from "@/components/Hlavicka";
 import Paticka from "@/components/Paticka";
-import { spolek } from "@/lib/obsah";
+import { spolek, urlWebu } from "@/lib/obsah";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -19,7 +19,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://csz-novosedlice.cz"),
+  metadataBase: new URL(urlWebu),
   title: {
     default: `${spolek.nazev} — ${spolek.pobocka}`,
     template: `%s | ${spolek.nazev} ${spolek.pobocka}`,

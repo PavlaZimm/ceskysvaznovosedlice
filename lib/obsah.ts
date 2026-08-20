@@ -3,6 +3,14 @@
  * Chcete-li něco změnit, upravte to zde — projeví se to všude.
  */
 
+/**
+ * ZMĚŇTE PO KOUPI DOMÉNY.
+ * Používá se pro odkazy v sitemap.xml, robots.txt a Open Graph náhledech.
+ * Bez lomítka na konci. Na Vercelu lze přepsat proměnnou NEXT_PUBLIC_URL_WEBU.
+ */
+export const urlWebu =
+  process.env.NEXT_PUBLIC_URL_WEBU ?? "https://csz-novosedlice.cz";
+
 export const spolek = {
   nazev: "Český svaz žen",
   pobocka: "ZO Novosedlice",

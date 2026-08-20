@@ -1,11 +1,9 @@
 import type { MetadataRoute } from "next";
-import { navigace } from "@/lib/obsah";
-
-const ZAKLAD = "https://csz-novosedlice.cz";
+import { navigace, urlWebu } from "@/lib/obsah";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return navigace.map((p) => ({
-    url: `${ZAKLAD}${p.href === "/" ? "" : p.href}`,
+    url: `${urlWebu}${p.href === "/" ? "" : p.href}`,
     lastModified: new Date(),
     changeFrequency: "monthly" as const,
     priority: p.href === "/" ? 1 : 0.8,
