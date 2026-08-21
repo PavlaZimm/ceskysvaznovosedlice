@@ -67,9 +67,23 @@ export default function Paticka() {
       </div>
 
       <div className="border-t border-linka/70">
-        <p className="mx-auto max-w-6xl px-5 py-5 text-xs text-inkoust-50 sm:px-8">
-          © {new Date().getFullYear()} {spolek.plnyNazev}
-        </p>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-5 text-xs text-inkoust-50 sm:px-8">
+          <p>
+            © {new Date().getFullYear()} {spolek.plnyNazev}
+          </p>
+          <p>
+            Vytvořeno s láskou a spoustou kávy ☕ na{" "}
+            <a
+              href="https://linklady.cz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-linka underline-offset-4 transition-colors hover:text-vino hover:decoration-vino"
+            >
+              linklady.cz
+            </a>
+            .
+          </p>
+        </div>
       </div>
     </footer>
   );
