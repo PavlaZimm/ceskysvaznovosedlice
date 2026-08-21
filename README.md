@@ -22,13 +22,15 @@ Web pak běží na <http://localhost:3000>.
 Push do `main` → Vercel automaticky sestaví a nasadí. Žádné nastavení není
 potřeba, Vercel Next.js pozná sám.
 
-### ⚠️ Doména
+### Doména
 
-V `lib/obsah.ts` je nahoře `urlWebu` nastavené na zástupné
-`https://csz-novosedlice.cz`. **Po zprovoznění skutečné domény ji tam přepište** —
-používá se v `sitemap.xml`, `robots.txt` a v náhledech odkazů na sociálních
-sítích. Případně jde místo úpravy kódu nastavit na Vercelu proměnnou prostředí
-`NEXT_PUBLIC_URL_WEBU`.
+`urlWebu` v `lib/obsah.ts` se odvodí sama: na Vercelu použije přidělenou adresu
+`*.vercel.app`, lokálně `localhost:3000`. Až budete mít vlastní doménu, nastavte
+na Vercelu proměnnou prostředí `NEXT_PUBLIC_URL_WEBU` (např.
+`https://csz-novosedlice.cz`) — do kódu není potřeba sahat.
+
+Používá se v `sitemap.xml`, `robots.txt`, canonical odkazech a v náhledech
+odkazů na sociálních sítích.
 
 ---
 
@@ -109,6 +111,10 @@ public/fotky/   fotografie
 - Fotogalerie: 106 fotek ve 14 akcích, lightbox s ovládáním klávesnicí
   (šipky, Esc)
 - Responzivní — mobil, tablet, počítač
-- SEO: meta popisky, Open Graph, `sitemap.xml`, `robots.txt`,
-  strukturovaná data (schema.org NGO)
+- SEO: unikátní titulky (40–65 znaků) a popisky (140–155 znaků) na každé
+  stránce, canonical odkazy, Open Graph i s náhledovým obrázkem (`public/og.jpg`),
+  `sitemap.xml`, `robots.txt`, strukturovaná data schema.org NGO včetně adresy,
+  souřadnic a působnosti
+- ALT text u všech 106 fotek — odvozuje se z názvu akce, takže se zlepší sám,
+  jakmile v `lib/fotky.ts` doplníte názvy
 - Bez cookies a bez služeb třetích stran → není potřeba cookie lišta

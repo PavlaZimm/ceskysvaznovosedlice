@@ -9,7 +9,13 @@
  * Bez lomítka na konci. Na Vercelu lze přepsat proměnnou NEXT_PUBLIC_URL_WEBU.
  */
 export const urlWebu =
-  process.env.NEXT_PUBLIC_URL_WEBU ?? "https://csz-novosedlice.cz";
+  // 1. vlastní doména, až bude (nastavte na Vercelu NEXT_PUBLIC_URL_WEBU)
+  process.env.NEXT_PUBLIC_URL_WEBU ??
+  // 2. jinak adresa, kterou přidělil Vercel — canonical a sitemap tak míří
+  //    na skutečně existující web i před koupí domény
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
 
 export const spolek = {
   nazev: "Český svaz žen",
@@ -24,6 +30,11 @@ export const spolek = {
   mesto: "Novosedlice",
   mapaUrl:
     "https://www.google.com/maps/search/?api=1&query=M%C3%ADru+86%2C+417+31+Novosedlice",
+  okres: "Teplice",
+  kraj: "Ústecký kraj",
+  // Souřadnice sídla (ověřeno přes OpenStreetMap Nominatim) — pro strukturovaná data.
+  lat: 50.6569368,
+  lon: 13.8230998,
 };
 
 export const navigace = [

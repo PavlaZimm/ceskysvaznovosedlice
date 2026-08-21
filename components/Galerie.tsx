@@ -96,7 +96,7 @@ export default function Galerie({ akce }: { akce: Akce[] }) {
                 >
                   <Image
                     src={f.src}
-                    alt=""
+                    alt={`${nadpisAkce(a)} — fotografie ${fi + 1} z ${a.fotky.length}`}
                     width={f.w}
                     height={f.h}
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -145,7 +145,7 @@ export default function Galerie({ akce }: { akce: Akce[] }) {
           <div className="relative flex flex-1 items-center justify-center px-3 pb-6 sm:px-20">
             <Image
               src={aktualni.src}
-              alt=""
+              alt={`${nadpisAkce(aktualniAkce)} — fotografie ${pozice.fotka + 1} z ${aktualniAkce.fotky.length}`}
               width={aktualni.w}
               height={aktualni.h}
               sizes="100vw"

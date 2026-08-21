@@ -4,10 +4,17 @@ import HlavickaStranky from "@/components/HlavickaStranky";
 import { akce, pocetAkci, pocetFotek } from "@/lib/fotky";
 
 export const metadata: Metadata = {
-  title: "Fotogalerie",
+  title: "Fotogalerie z akcí | Český svaz žen Novosedlice",
   description:
-    `${pocetFotek} fotografií z ${pocetAkci} akcí Českého svazu žen v Novosedlicích — ` +
-    "besedy, výlety, divadlo, tvořivá odpoledne a společná setkání.",
+    `${pocetFotek} fotografií ze ${pocetAkci} akcí našeho spolku v Novosedlicích — ` +
+    "besedy, výlety, divadlo i tvořivá odpoledne. Prohlédněte si sami, jak se u nás žije.",
+  alternates: { canonical: "/fotogalerie" },
+  openGraph: {
+    title: "Fotogalerie z akcí | Český svaz žen Novosedlice",
+    description: `${pocetFotek} fotografií ze ${pocetAkci} akcí našeho spolku v Novosedlicích.`,
+    url: "/fotogalerie",
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Český svaz žen Novosedlice" }],
+  },
 };
 
 export default function FotogalerieStranka() {
@@ -15,7 +22,7 @@ export default function FotogalerieStranka() {
     <>
       <HlavickaStranky
         nadnadpis={`${pocetFotek} fotografií z ${pocetAkci} akcí`}
-        nadpis="Fotogalerie"
+        nadpis="Fotogalerie z našich akcí"
         perex={
           "V naší fotogalerii najdete snímky z různých akcí, které pořádáme jako " +
           "základní organizace Českého svazu žen v Novosedlicích. Zahrnují přednášky, " +

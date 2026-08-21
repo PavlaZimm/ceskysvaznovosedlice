@@ -4,10 +4,17 @@ import HlavickaStranky from "@/components/HlavickaStranky";
 import { kontakt, spolek } from "@/lib/obsah";
 
 export const metadata: Metadata = {
-  title: "Kontakt",
+  title: `Kontakt | Český svaz žen Novosedlice, ${spolek.ulice}`,
   description:
-    `Kontakt na Český svaz žen ZO Novosedlice — ${spolek.email}, ${spolek.telefon}, ` +
-    `${spolek.ulice}, ${spolek.psc} ${spolek.mesto}.`,
+    `Napište na ${spolek.email} nebo zavolejte ${spolek.telefon}. Najdete nás ` +
+    `na adrese ${spolek.ulice}, ${spolek.mesto} u Teplic. Ozvěte se nám.`,
+  alternates: { canonical: "/kontakt" },
+  openGraph: {
+    title: "Kontakt | Český svaz žen Novosedlice",
+    description: `${spolek.ulice}, ${spolek.psc} ${spolek.mesto}. ${spolek.telefon}`,
+    url: "/kontakt",
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Český svaz žen Novosedlice" }],
+  },
 };
 
 const Obalka = () => (

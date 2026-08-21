@@ -4,10 +4,17 @@ import Tlacitko from "@/components/Tlacitko";
 import { tym } from "@/lib/obsah";
 
 export const metadata: Metadata = {
-  title: "Tým",
+  title: "Výbor a členky | Český svaz žen Novosedlice",
   description:
-    "Výbor základní organizace Českého svazu žen v Novosedlicích — předsedkyně, " +
-    "místopředsedkyně a jednatelka.",
+    "Předsedkyně, místopředsedkyně a jednatelka základní organizace Českého svazu " +
+    "žen v Novosedlicích. Chcete se přidat? Ozvěte se nám, rády poradíme.",
+  alternates: { canonical: "/tym" },
+  openGraph: {
+    title: "Výbor a členky | Český svaz žen Novosedlice",
+    description: "Kdo vede základní organizaci Českého svazu žen v Novosedlicích.",
+    url: "/tym",
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Český svaz žen Novosedlice" }],
+  },
 };
 
 /** Iniciály ze jména, tituly se přeskočí. */

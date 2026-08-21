@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Tlacitko from "@/components/Tlacitko";
-import { akce, pocetAkci, pocetFotek } from "@/lib/fotky";
+import { akce, nadpisAkce, pocetAkci, pocetFotek } from "@/lib/fotky";
 import { spolek, uvod } from "@/lib/obsah";
 
 /* Tři fotky do hero koláže — vybrané ručně z fotogalerie. */
@@ -11,7 +11,9 @@ const heroFotky = [
 ];
 
 export default function DomovskaStranka() {
-  const nejnovejsi = akce[0]?.fotky.slice(0, 6) ?? [];
+  const nejnovejsiAkce = akce[0];
+  const nejnovejsi = nejnovejsiAkce?.fotky.slice(0, 6) ?? [];
+  const popisekAkce = nejnovejsiAkce ? nadpisAkce(nejnovejsiAkce) : "";
 
   return (
     <>
@@ -24,11 +26,16 @@ export default function DomovskaStranka() {
         />
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           <div>
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-vino">
-              {spolek.pobocka}
-            </p>
-            <h1 className="mt-5 text-[2.6rem] leading-[1.05] sm:text-6xl">
-              {spolek.motto}
+            {/* Nadřazený řádek je součástí H1, aby hlavní nadpis stránky obsahoval
+                i název spolku a obec — vizuálně je to beze změny. */}
+            <h1>
+              <span className="block font-[family-name:var(--font-text)] text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-vino">
+                {spolek.nazev} {spolek.mesto}
+              </span>
+              <span className="sr-only"> — </span>
+              <span className="mt-5 block text-[2.6rem] leading-[1.05] sm:text-6xl">
+                {spolek.motto}
+              </span>
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-relaxed text-inkoust-50">
               {uvod.perex}
@@ -120,14 +127,14 @@ export default function DomovskaStranka() {
           </div>
 
           <div className="mt-12 grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
-            {nejnovejsi.map((f) => (
+            {nejnovejsi.map((f, i) => (
               <div
                 key={f.src}
                 className="relative aspect-square overflow-hidden rounded-xl border border-linka"
               >
                 <Image
                   src={f.src}
-                  alt=""
+                  alt={`${popisekAkce} — fotografie ${i + 1}`}
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
                   className="object-cover transition-transform duration-500 hover:scale-105"

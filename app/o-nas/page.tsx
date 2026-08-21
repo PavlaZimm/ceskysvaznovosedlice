@@ -5,10 +5,18 @@ import Tlacitko from "@/components/Tlacitko";
 import { oNas } from "@/lib/obsah";
 
 export const metadata: Metadata = {
-  title: "O nás",
+  title: "O spolku a naší činnosti | Český svaz žen Novosedlice",
   description:
-    "Český svaz žen z. s. je nezávislý dobrovolný spolek. Naše základní organizace " +
-    "působí v Novosedlicích — pořádáme kulturní akce, besedy a podporujeme komunitní život.",
+    "Kdo jsme a čemu se věnujeme. Kulturní akce, zdravotní prevence pro ženy " +
+    "a komunitní život v Novosedlicích u Teplic. Poznejte náš spolek blíž.",
+  alternates: { canonical: "/o-nas" },
+  openGraph: {
+    title: "O spolku a naší činnosti | Český svaz žen Novosedlice",
+    description:
+      "Kulturní akce, zdravotní prevence pro ženy a komunitní život v Novosedlicích.",
+    url: "/o-nas",
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Český svaz žen Novosedlice" }],
+  },
 };
 
 export default function ONasStranka() {
