@@ -34,6 +34,11 @@ odkazů na sociálních sítích.
 
 ---
 
+## Aby web někdo našel
+
+Technické SEO je hotové. Kroky, které je potřeba udělat mimo web (Search Console,
+odkaz z obecního webu, Facebook), jsou v **[SEO-KROKY.md](SEO-KROKY.md)**.
+
 ## Kde co upravit
 
 | Co chci změnit | Soubor |
