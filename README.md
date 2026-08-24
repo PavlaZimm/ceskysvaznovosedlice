@@ -34,6 +34,43 @@ odkazů na sociálních sítích.
 
 ---
 
+## Správa obsahu
+
+Web má vlastní správu na **`/sprava`** — přihlášení heslem, úprava textů,
+kontaktů a fotogalerie. Návod pro členky spolku je v
+**[NAVOD-SPRAVA.md](NAVOD-SPRAVA.md)**.
+
+### Jak to funguje
+
+Web nemá databázi. Obsah je v `obsah/stranky.json` a `obsah/galerie.json`,
+fotky v `public/fotky/`. Správa zapisuje přímo do repozitáře přes GitHub API
+(jeden commit i při nahrání dvaceti fotek), Vercel na commit zareaguje novým
+sestavením a změna je za necelou minutu na webu.
+
+Díky tomu zůstává veřejný web čistě statický, nic se neuspává a provoz stojí
+0 Kč.
+
+### Co je potřeba nastavit
+
+Na Vercelu (*Project → Settings → Environment Variables*):
+
+| Proměnná | K čemu |
+|---|---|
+| `SPRAVA_HESLO` | heslo do správy |
+| `GITHUB_TOKEN` | fine-grained token s právem *Contents: Read and write* na tento repozitář |
+| `GITHUB_REPO` | `PavlaZimm/ceskysvaznovosedlice` |
+| `GITHUB_BRANCH` | `main` |
+
+Vzor je v [.env.example](.env.example). **Bez `GITHUB_TOKEN` se změny ukládají
+jen na disk** — to je režim pro vývoj na vlastním počítači, ve správě se v něm
+nahoře zobrazí upozornění.
+
+Pro pokusy lokálně:
+
+```bash
+echo 'SPRAVA_HESLO=neco-tajneho' > .env.local && npm run dev
+```
+
 ## Aby web někdo našel
 
 Technické SEO je hotové. Kroky, které je potřeba udělat mimo web (Search Console,
@@ -105,8 +142,12 @@ app/            stránky (každá složka = jedna adresa)
   kontakt/        kontakt
   layout.tsx      společný obal (hlavička, patička, SEO)
   globals.css     barvy, písma, základní styly
+  sprava/         správa webu (nezobrazuje se ve vyhledávačích)
 components/     hlavička, patička, galerie s lightboxem, tlačítko
-lib/            obsah.ts (texty), fotky.ts (galerie)
+  sprava/         formuláře správy
+lib/            obsah.ts a fotky.ts (čtení obsahu), typy.ts,
+                uloziste.ts (zápis do GitHubu), auth.ts (přihlášení)
+obsah/          texty a galerie jako JSON — tohle správa upravuje
 public/fotky/   fotografie
 ```
 
