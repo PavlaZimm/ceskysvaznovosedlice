@@ -14,7 +14,7 @@ Seřazeno podle toho, co má největší efekt.
 
 1. Otevřít <https://search.google.com/search-console>
 2. Přihlásit se Google účtem → *Přidat službu* → **Předpona URL**
-3. Vložit adresu webu (`https://…vercel.app`, později vlastní doménu)
+3. Vložit **https://csznovosedlice.cz**
 4. Ověřit vlastnictví — nejjednodušší je stažení HTML souboru:
    soubor se uloží do složky `public/`, pak commit a push
 5. Po ověření vlevo *Sitemapy* → vložit `sitemap.xml` → **Odeslat**
@@ -74,14 +74,18 @@ Návod je v `README.md`.
 
 ---
 
-## 6. Až bude vlastní doména
+## 6. Doména — hotovo
 
-Nastavit na Vercelu proměnnou prostředí `NEXT_PUBLIC_URL_WEBU` na novou adresu
-(*Project → Settings → Environment Variables*), pak znovu nasadit.
-Do kódu není potřeba sahat.
+Web běží na **https://csznovosedlice.cz** (bez www; `www` se na něj přesměruje).
 
-Pozor: v Search Console je pak nutné **přidat novou doménu jako další službu** —
-ověření se z `vercel.app` nepřenese.
+Nastaveno:
+- `A` záznam `@` → `216.198.79.1` (Vercel), u Endory
+- `CNAME` `www` → Vercel
+- odstraněn konfliktní `AAAA` záznam, který mířil na starý hosting
+- `NEXT_PUBLIC_URL_WEBU` na Vercelu → `https://csznovosedlice.cz`
+
+E-mailové `MX` záznamy zůstaly u Endory beze změny, pošta na doméně tedy
+funguje dál.
 
 ---
 
