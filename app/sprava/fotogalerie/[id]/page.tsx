@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { jePrihlasen } from "@/lib/auth";
-import { nactiGalerii } from "@/lib/uloziste";
+import { zkusNacistGalerii } from "@/lib/uloziste";
+import NelzeNacist from "@/components/sprava/NelzeNacist";
 
 export const dynamic = "force-dynamic";
 import DetailAkce from "@/components/sprava/DetailAkce";
@@ -14,7 +15,9 @@ export default async function SpravaDetailAkce({
   if (!(await jePrihlasen())) redirect("/sprava/prihlaseni");
 
   const { id } = await params;
-  const { akce } = await nactiGalerii();
+  const galerie = await zkusNacistGalerii();
+  if (!galerie) return <NelzeNacist />;
+  const { akce } = galerie;
   const a = akce.find((x) => x.id === id);
   if (!a) notFound();
 

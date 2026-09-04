@@ -1,6 +1,9 @@
 "use client";
 
+
 import { useActionState, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { rozdelDoDavek, zmensiFotku } from "@/lib/zmenseni";
 import {
   nahrajFotky,
   presunFotku,
@@ -14,23 +17,91 @@ import Tlacitko from "./Tlacitko";
 
 export default function DetailAkce({ akce: a }: { akce: Akce }) {
   const [stavUpravy, akceUpravy, cekaUprava] = useActionState(upravAkci, null);
-  const [stavNahrani, akceNahrani, cekaNahrani] = useActionState(nahrajFotky, null);
+  const [stavNahrani, setStavNahrani] = useState<{ chyba?: string; hotovo?: string } | null>(null);
+  const [prubeh, setPrubeh] = useState<{ faze: string; hotovo: number; celkem: number } | null>(null);
+  const cekaNahrani = prubeh !== null;
   const [pretahuje, setPretahuje] = useState(false);
+  // chyby z akcí, které nemají vlastní formulář (mazání, přeskupení)
+  const [stavAkce, setStavAkce] = useState<{ chyba?: string } | null>(null);
   const [pracuje, start] = useTransition();
+
+  /** Spustí serverovou akci a případnou chybu ukáže uživateli. */
+  function proved(akce: () => Promise<{ chyba: string } | void>) {
+    setStavAkce(null);
+    start(async () => {
+      const v = await akce();
+      if (v?.chyba) setStavAkce({ chyba: v.chyba });
+    });
+  }
   const vstupSouboru = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  /**
+   * Nahrání fotek. Každou nejdřív zmenšíme přímo tady v prohlížeči a teprve
+   * pak posíláme na server — nezmenšená fotka z mobilu je na jeden požadavek
+   * příliš velká a nahrávání by selhalo.
+   */
+  async function nahraj(soubory: File[]) {
+    const obrazky = soubory.filter((f) => f.type.startsWith("image/"));
+    if (obrazky.length === 0) {
+      setStavNahrani({ chyba: "Nevybrali jste žádnou fotku." });
+      return;
+    }
+
+    setStavNahrani(null);
+    setPrubeh({ faze: "Připravuji fotky", hotovo: 0, celkem: obrazky.length });
+
+    const zmensene: File[] = [];
+    for (const [i, f] of obrazky.entries()) {
+      zmensene.push(await zmensiFotku(f));
+      setPrubeh({ faze: "Připravuji fotky", hotovo: i + 1, celkem: obrazky.length });
+    }
+
+    const davky = rozdelDoDavek(zmensene);
+    let nahrano = 0;
+    let chyba: string | null = null;
+
+    for (const davka of davky) {
+      setPrubeh({ faze: "Nahrávám", hotovo: nahrano, celkem: zmensene.length });
+      const data = new FormData();
+      data.set("id", a.id);
+      for (const f of davka) data.append("fotky", f);
+
+      try {
+        const v = await nahrajFotky(null, data);
+        if (v?.chyba) {
+          chyba = v.chyba;
+          break;
+        }
+        nahrano += davka.length;
+      } catch {
+        chyba =
+          "Nahrávání se přerušilo. Zkontrolujte prosím připojení k internetu " +
+          "a zkuste to znovu — fotky, které už se nahrály, tam zůstanou.";
+        break;
+      }
+    }
+
+    setPrubeh(null);
+    if (chyba) {
+      setStavNahrani({
+        chyba:
+          nahrano > 0
+            ? `Nahráno ${nahrano} fotek, pak nastala potíž: ${chyba}`
+            : chyba,
+      });
+    } else {
+      setStavNahrani({ hotovo: `Nahráno ${nahrano} fotek. Na webu budou do minuty.` });
+    }
+    if (vstupSouboru.current) vstupSouboru.current.value = "";
+    router.refresh();
+  }
 
   // Přetažení fotek na plochu = totéž jako výběr přes tlačítko
   function pust(e: React.DragEvent) {
     e.preventDefault();
     setPretahuje(false);
-    const dt = new DataTransfer();
-    for (const f of Array.from(e.dataTransfer.files)) {
-      if (f.type.startsWith("image/")) dt.items.add(f);
-    }
-    if (vstupSouboru.current && dt.files.length) {
-      vstupSouboru.current.files = dt.files;
-      vstupSouboru.current.form?.requestSubmit();
-    }
+    void nahraj(Array.from(e.dataTransfer.files));
   }
 
   return (
@@ -70,8 +141,7 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
       </form>
 
       {/* --- nahrání fotek --- */}
-      <form action={akceNahrani} className="mt-6">
-        <input type="hidden" name="id" value={a.id} />
+      <div className="mt-6">
         <div
           onDragOver={(e) => { e.preventDefault(); setPretahuje(true); }}
           onDragLeave={() => setPretahuje(false)}
@@ -84,7 +154,7 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
             Přetáhněte sem fotky
           </p>
           <p className="mt-2 text-sm text-inkoust-50">
-            nebo je vyberte v počítači. Najednou nejvýš 40 fotek.
+            nebo je vyberte v počítači. Zmenší se samy, klidně je berte rovnou z mobilu.
           </p>
           <input
             ref={vstupSouboru}
@@ -94,7 +164,7 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
             accept="image/*"
             multiple
             className="sr-only"
-            onChange={(e) => e.currentTarget.form?.requestSubmit()}
+            onChange={(e) => void nahraj(Array.from(e.currentTarget.files ?? []))}
           />
           <label
             htmlFor="fotky"
@@ -102,19 +172,35 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
           >
             Vybrat fotky
           </label>
-          {cekaNahrani && (
-            <p className="mt-5 text-sm text-inkoust-50">
-              Nahrávám a zmenšuji fotky… u většího počtu to může chvíli trvat.
-            </p>
+          {prubeh && (
+            <div className="mt-6">
+              <p className="text-sm text-inkoust-50">
+                {prubeh.faze} — {prubeh.hotovo} z {prubeh.celkem}
+              </p>
+              <div className="mx-auto mt-3 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-linka">
+                <div
+                  className="h-full bg-vino transition-all duration-300"
+                  style={{ width: `${Math.round((prubeh.hotovo / prubeh.celkem) * 100)}%` }}
+                />
+              </div>
+              <p className="mt-3 text-xs text-inkoust-50">
+                Nezavírejte prosím stránku, dokud nahrávání neskončí.
+              </p>
+            </div>
           )}
         </div>
         <div className="mt-4"><Hlaska stav={stavNahrani} /></div>
-      </form>
+      </div>
 
       {/* --- mřížka fotek --- */}
       <h2 className="mt-12 text-2xl">
         Fotky <span className="text-inkoust-50">({a.fotky.length})</span>
       </h2>
+      {stavAkce?.chyba && (
+        <div className="mt-4">
+          <Hlaska stav={stavAkce} />
+        </div>
+      )}
       {a.fotky.length === 0 ? (
         <p className="mt-4 text-inkoust-50">Zatím tu není žádná fotka.</p>
       ) : (
@@ -137,12 +223,12 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
                   <Sipka
                     smer="vlevo"
                     vypnuto={i === 0 || pracuje}
-                    onClick={() => start(() => { void presunFotku(a.id, f.src, -1); })}
+                    onClick={() => proved(() => presunFotku(a.id, f.src, -1))}
                   />
                   <Sipka
                     smer="vpravo"
                     vypnuto={i === a.fotky.length - 1 || pracuje}
-                    onClick={() => start(() => { void presunFotku(a.id, f.src, 1); })}
+                    onClick={() => proved(() => presunFotku(a.id, f.src, 1))}
                   />
                 </div>
                 <button
@@ -150,7 +236,7 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
                   disabled={pracuje}
                   onClick={() => {
                     if (confirm("Opravdu smazat tuhle fotku? Nejde to vzít zpět.")) {
-                      start(() => { void smazFotku(a.id, f.src); });
+                      proved(() => smazFotku(a.id, f.src));
                     }
                   }}
                   className="rounded-lg px-2 py-1 text-xs text-vino transition-colors hover:bg-vino hover:text-papir disabled:opacity-40"
@@ -174,7 +260,7 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
           disabled={pracuje}
           onClick={() => {
             if (confirm(`Opravdu smazat akci i s ${a.fotky.length} fotkami? Nejde to vzít zpět.`)) {
-              start(() => { void smazAkci(a.id); });
+              proved(() => smazAkci(a.id));
             }
           }}
           className="mt-5 rounded-full border border-vino/40 px-6 py-3 text-sm font-medium text-vino transition-colors hover:bg-vino hover:text-papir disabled:opacity-40"

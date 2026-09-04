@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { jePrihlasen } from "@/lib/auth";
-import { nactiGalerii } from "@/lib/uloziste";
+import { zkusNacistGalerii } from "@/lib/uloziste";
+import NelzeNacist from "@/components/sprava/NelzeNacist";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,9 @@ const dlazdice = [
 export default async function SpravaRozcestnik() {
   if (!(await jePrihlasen())) redirect("/sprava/prihlaseni");
 
-  const { akce } = await nactiGalerii();
+  const galerie = await zkusNacistGalerii();
+  if (!galerie) return <NelzeNacist />;
+  const { akce } = galerie;
   const pocetAkci = akce.length;
   const pocetFotek = akce.reduce((n, a) => n + a.fotky.length, 0);
   const posledni = akce[0];

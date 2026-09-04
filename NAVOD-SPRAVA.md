@@ -21,13 +21,13 @@ u kterého se web vždy zeptá.
    vyberte datum, napište název (třeba „Pálení čarodějnic") a potvrďte
 3. Fotky buď **přetáhněte myší** do vyznačeného rámečku, nebo klikněte na
    **Vybrat fotky** a najděte je v počítači
-4. Najednou jich můžete vybrat až 40
+4. Vyberte klidně všechny najednou
 
-Fotky se samy zmenší, aby se web rychle načítal — nemusíte s nimi nic dělat,
-klidně je nahrajte rovnou z mobilu. Otočené fotky se srovnají samy.
+Fotky se samy zmenší ještě ve vašem počítači, takže je nahrávejte rovnou tak,
+jak jsou — i velké snímky z mobilu. Otočené fotky se srovnají samy.
 
-**Nahrávání většího počtu fotek chvíli trvá. Nezavírejte stránku, dokud se
-neobjeví potvrzení.**
+Během nahrávání uvidíte proužek s průběhem („Připravuji fotky 3 z 12",
+pak „Nahrávám"). **Nezavírejte stránku, dokud se neobjeví potvrzení.**
 
 ---
 
@@ -86,3 +86,8 @@ není to nic, co byste zvládly samy.
 
 **Zapomněla jsem heslo.**
 Nové nastaví správce webu. Nedá se nikde přečíst.
+
+**Objevila se hláška, že web nemá přístup k úložišti.**
+Vypršel přístupový token — ozvěte se správci webu, oprava je otázka pár
+minut. Web samotný běží dál a návštěvníci nic nepoznají, jen se dočasně
+nedají ukládat změny.

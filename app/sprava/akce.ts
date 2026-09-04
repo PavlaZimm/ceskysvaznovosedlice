@@ -16,6 +16,42 @@ const FOTKY_DIR = "public/fotky";
 /** Největší strana fotky po zmenšení. Drží repozitář v rozumné velikosti. */
 const MAX_STRANA = 1920;
 
+/**
+ * Uloží změnu a případnou chybu převede na větu, které rozumí i člověk,
+ * který o GitHubu nikdy neslyšel.
+ *
+ * Web samotný na tomhle nestojí — je statický a běží dál i když ukládání
+ * selže. Rozbít se může jen tahle správa, typicky když vyprší přístupový
+ * token.
+ */
+async function zkusUlozit(zmena: Parameters<typeof uloz>[0]): Promise<string | null> {
+  try {
+    await uloz(zmena);
+    return null;
+  } catch (e) {
+    const zprava = e instanceof Error ? e.message : String(e);
+    console.error("Správa: ukládání selhalo —", zprava);
+
+    if (/GitHub 40[13]|Bad credentials|EROFS|read-only/i.test(zprava)) {
+      return (
+        "Uložení se nezdařilo, protože web nemá přístup k úložišti — nejspíš " +
+        "vypršel přístupový token. Ozvěte se prosím správci webu, je to " +
+        "otázka pár minut. Váš text ani fotky se neztratily, jen se neuložily."
+      );
+    }
+    if (/GitHub 404/i.test(zprava)) {
+      return "Uložení se nezdařilo — úložiště webu nebylo nalezeno. Ozvěte se prosím správci webu.";
+    }
+    if (/GitHub 409|GitHub 422/i.test(zprava)) {
+      return "Někdo jiný mezitím uložil změnu. Načtěte prosím stránku znovu a zkuste to ještě jednou.";
+    }
+    return (
+      "Uložení se nezdařilo. Zkuste to prosím za chvíli znovu — a pokud to " +
+      "nepůjde ani pak, ozvěte se správci webu."
+    );
+  }
+}
+
 function json(x: unknown) {
   return JSON.stringify(x, null, 2) + "\n";
 }
@@ -79,10 +115,11 @@ export async function novaAkce(_stav: unknown, data: FormData) {
   for (let i = 2; g.akce.some((a) => a.id === id); i++) id = `${datum}-${i}`;
 
   g.akce.push({ id, datum, nazev, popis: "", fotky: [] });
-  await uloz({
+  const chyba = await zkusUlozit({
     zapis: [{ cesta: GALERIE, obsah: json(serad(g)) }],
     zprava: `Správa: nová akce ${nazev || datum}`,
   });
+  if (chyba) return { chyba };
   osvez();
   redirect(`/sprava/fotogalerie/${id}`);
 }
@@ -102,15 +139,16 @@ export async function upravAkci(_stav: unknown, data: FormData) {
   a.nazev = String(data.get("nazev") ?? "").trim();
   a.popis = String(data.get("popis") ?? "").trim();
 
-  await uloz({
+  const chyba = await zkusUlozit({
     zapis: [{ cesta: GALERIE, obsah: json(serad(g)) }],
     zprava: `Správa: úprava akce ${a.nazev || a.datum}`,
   });
+  if (chyba) return { chyba };
   osvez();
   return { hotovo: "Uloženo." };
 }
 
-export async function smazAkci(id: string) {
+export async function smazAkci(id: string): Promise<{ chyba: string } | void> {
   await overPrihlaseni();
   const g = await nactiGalerii();
   const a = g.akce.find((x) => x.id === id);
@@ -119,11 +157,12 @@ export async function smazAkci(id: string) {
   const smaz = a.fotky.map((f) => `public${f.src}`);
   g.akce = g.akce.filter((x) => x.id !== id);
 
-  await uloz({
+  const chyba = await zkusUlozit({
     zapis: [{ cesta: GALERIE, obsah: json(g) }],
     smaz,
     zprava: `Správa: smazána akce ${a.nazev || a.datum} (${smaz.length} fotek)`,
   });
+  if (chyba) return { chyba };
   osvez();
   redirect("/sprava/fotogalerie");
 }
@@ -182,10 +221,11 @@ export async function nahrajFotky(_stav: unknown, data: FormData) {
   }
 
   zapis.push({ cesta: GALERIE, obsah: json(g) });
-  await uloz({
+  const chyba = await zkusUlozit({
     zapis,
     zprava: `Správa: +${zapis.length - 1} fotek k akci ${a.nazev || a.datum}`,
   });
+  if (chyba) return { chyba };
   osvez();
 
   return {
@@ -195,22 +235,27 @@ export async function nahrajFotky(_stav: unknown, data: FormData) {
   };
 }
 
-export async function smazFotku(id: string, src: string) {
+export async function smazFotku(id: string, src: string): Promise<{ chyba: string } | void> {
   await overPrihlaseni();
   const g = await nactiGalerii();
   const a = g.akce.find((x) => x.id === id);
   if (!a) return;
   a.fotky = a.fotky.filter((f) => f.src !== src);
 
-  await uloz({
+  const chyba = await zkusUlozit({
     zapis: [{ cesta: GALERIE, obsah: json(g) }],
     smaz: [`public${src}`],
     zprava: `Správa: smazána fotka z akce ${a.nazev || a.datum}`,
   });
+  if (chyba) return { chyba };
   osvez();
 }
 
-export async function presunFotku(id: string, src: string, smer: -1 | 1) {
+export async function presunFotku(
+  id: string,
+  src: string,
+  smer: -1 | 1,
+): Promise<{ chyba: string } | void> {
   await overPrihlaseni();
   const g = await nactiGalerii();
   const a = g.akce.find((x) => x.id === id);
@@ -220,10 +265,11 @@ export async function presunFotku(id: string, src: string, smer: -1 | 1) {
   if (i < 0 || j < 0 || j >= a.fotky.length) return;
   [a.fotky[i], a.fotky[j]] = [a.fotky[j], a.fotky[i]];
 
-  await uloz({
+  const chyba = await zkusUlozit({
     zapis: [{ cesta: GALERIE, obsah: json(g) }],
     zprava: `Správa: přeskupení fotek u akce ${a.nazev || a.datum}`,
   });
+  if (chyba) return { chyba };
   osvez();
 }
 
@@ -260,10 +306,11 @@ export async function ulozTexty(_stav: unknown, data: FormData) {
   s.tym.uvod = t("tymUvod", s.tym.uvod);
   s.kontakt.uvod = t("kontaktUvod", s.kontakt.uvod);
 
-  await uloz({
+  const chyba = await zkusUlozit({
     zapis: [{ cesta: STRANKY, obsah: json(s) }],
     zprava: "Správa: úprava textů",
   });
+  if (chyba) return { chyba };
   osvez();
   return { hotovo: "Texty uloženy." };
 }
@@ -294,10 +341,11 @@ export async function ulozKontakt(_stav: unknown, data: FormData) {
     .map((j, i) => ({ jmeno: j.trim(), funkce: (funkce[i] ?? "").trim() }))
     .filter((c) => c.jmeno);
 
-  await uloz({
+  const chyba = await zkusUlozit({
     zapis: [{ cesta: STRANKY, obsah: json(s) }],
     zprava: "Správa: úprava kontaktů a výboru",
   });
+  if (chyba) return { chyba };
   osvez();
   return { hotovo: "Uloženo." };
 }

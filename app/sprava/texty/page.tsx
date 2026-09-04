@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { jePrihlasen } from "@/lib/auth";
-import { nactiStranky } from "@/lib/uloziste";
+import { zkusNacistStranky } from "@/lib/uloziste";
+import NelzeNacist from "@/components/sprava/NelzeNacist";
 
 export const dynamic = "force-dynamic";
 import FormularTexty from "@/components/sprava/FormularTexty";
@@ -8,7 +9,9 @@ import FormularTexty from "@/components/sprava/FormularTexty";
 export default async function SpravaTexty() {
   if (!(await jePrihlasen())) redirect("/sprava/prihlaseni");
 
-  const { spolek, uvod, oNas, tym, kontakt } = await nactiStranky();
+  const data = await zkusNacistStranky();
+  if (!data) return <NelzeNacist />;
+  const { spolek, uvod, oNas, tym, kontakt } = data;
 
   return (
     <>

@@ -20,6 +20,13 @@ const API = "https://api.github.com";
 
 export const zapisujeDoGitHubu = Boolean(TOKEN);
 
+/**
+ * Ostrý provoz bez tokenu = ukládání vůbec nemůže fungovat (Vercel má
+ * souborový systém jen pro čtení). Správa na to musí upozornit dřív, než
+ * někdo stráví půl hodiny psaním textu, který se neuloží.
+ */
+export const chybiPristupKUlozisti = !TOKEN && Boolean(process.env.VERCEL);
+
 /** Jeden soubor k zápisu. Text, nebo binární data (fotky). */
 export type Soubor = {
   /** Cesta v repozitáři, např. "obsah/galerie.json" nebo "public/fotky/x.webp". */
@@ -169,6 +176,29 @@ export async function nactiStranky(): Promise<Stranky> {
 
 export async function nactiGalerii(): Promise<Galerie> {
   return JSON.parse(await nacti("obsah/galerie.json")) as Galerie;
+}
+
+/**
+ * Totéž, ale bez pádu. Když se obsah nepodaří načíst (typicky vypršelý
+ * token), stránka správy se má zobrazit s vysvětlením — ne spadnout na
+ * bílou chybovou hlášku.
+ */
+export async function zkusNacistStranky(): Promise<Stranky | null> {
+  try {
+    return await nactiStranky();
+  } catch (e) {
+    console.error("Správa: nepodařilo se načíst texty —", e);
+    return null;
+  }
+}
+
+export async function zkusNacistGalerii(): Promise<Galerie | null> {
+  try {
+    return await nactiGalerii();
+  } catch (e) {
+    console.error("Správa: nepodařilo se načíst galerii —", e);
+    return null;
+  }
 }
 
 /** Načte binární soubor (fotku) — z GitHubu, nebo z disku. */

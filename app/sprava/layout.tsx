@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { jePrihlasen } from "@/lib/auth";
-import { zapisujeDoGitHubu } from "@/lib/uloziste";
+import { chybiPristupKUlozisti, zapisujeDoGitHubu } from "@/lib/uloziste";
 import { odhlaseni } from "./akce";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +64,15 @@ export default async function SpravaLayout({
         </header>
       )}
 
-      {prihlasen && !zapisujeDoGitHubu && (
+      {prihlasen && chybiPristupKUlozisti && (
+        <p className="bg-vino/10 px-5 py-3 text-center text-sm text-vino sm:px-8">
+          <strong>Ukládání teď nefunguje.</strong> Web nemá nastavený přístup
+          k úložišti, takže se změny neuloží. Ozvěte se prosím správci webu —
+          je to otázka pár minut.
+        </p>
+      )}
+
+      {prihlasen && !zapisujeDoGitHubu && !chybiPristupKUlozisti && (
         <p className="bg-okr/15 px-5 py-2.5 text-center text-sm text-inkoust sm:px-8">
           Zkušební režim — změny se ukládají jen na tento počítač, ne na web.
         </p>

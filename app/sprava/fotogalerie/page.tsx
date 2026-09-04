@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { jePrihlasen } from "@/lib/auth";
 import { formatDatum } from "@/lib/fotky";
-import { nactiGalerii } from "@/lib/uloziste";
+import { zkusNacistGalerii } from "@/lib/uloziste";
+import NelzeNacist from "@/components/sprava/NelzeNacist";
 
 export const dynamic = "force-dynamic";
 import FormularNovaAkce from "@/components/sprava/FormularNovaAkce";
@@ -10,7 +11,9 @@ import FormularNovaAkce from "@/components/sprava/FormularNovaAkce";
 export default async function SpravaGalerie() {
   if (!(await jePrihlasen())) redirect("/sprava/prihlaseni");
 
-  const { akce } = await nactiGalerii();
+  const galerie = await zkusNacistGalerii();
+  if (!galerie) return <NelzeNacist />;
+  const { akce } = galerie;
 
   return (
     <>
