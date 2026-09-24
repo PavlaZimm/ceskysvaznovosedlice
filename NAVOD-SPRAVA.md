@@ -1,12 +1,12 @@
 # Jak upravovat web
 
-Návod pro členky výboru. Nic se nedá nenávratně pokazit — kromě mazání,
-u kterého se web vždy zeptá.
+Návod pro členky výboru. Změny se po uložení projeví na veřejném webu.
+Před mazáním se web vždy zeptá.
 
 ## Přihlášení
 
 1. Otevřete adresu webu a na konec dopište **`/sprava`**
-   (například `https://nasweb.cz/sprava`)
+   (například `https://csznovosedlice.cz/sprava`)
 2. Zadejte heslo, které jste dostaly od správce webu
 3. Zůstanete přihlášené 30 dní, pak se heslo zadává znovu
 
@@ -47,8 +47,8 @@ První fotka v pořadí se používá jako náhled akce v seznamu.
 V detailu akce nahoře můžete změnit **datum**, **název** a **popis**.
 Po úpravě klikněte na **Uložit údaje**.
 
-Úplně dole je **Smazat akci** — smaže akci i všechny její fotky. Tohle nejde
-vrátit zpět, tak s tím opatrně.
+Úplně dole je **Smazat akci** — odstraní album i jeho fotky z veřejné galerie.
+Pokud se spletete, ozvěte se správci; může pomoci s obnovou z historie.
 
 ---
 
@@ -74,11 +74,12 @@ Nová členka se přidá tlačítkem **+ Přidat další členku**.
 ## Časté otázky
 
 **Změnila jsem text, ale na webu je pořád ten starý.**
-Web se po uložení sám znovu sestaví, což trvá asi minutu. Počkejte chvíli
-a stránku obnovte (Ctrl+R, na Macu Cmd+R).
+Po úspěšném uložení stránku obnovte (Ctrl+R, na Macu Cmd+R).
+Pokud vidíte chybovou zprávu, změna není potvrzená — zkuste uložení znovu.
 
 **Nahrála jsem fotky a ve fotogalerii na webu nejsou.**
-Totéž — dejte tomu minutu. Ve správě je uvidíte hned.
+Počkejte na potvrzení dokončeného nahrávání a obnovte veřejnou galerii.
+Pokud se některá fotka nepodařila zpracovat, zkuste ji uložit jako JPG a nahrát znovu.
 
 **Omylem jsem smazala fotku.**
 Ozvěte se správci webu. Smazané fotky jdou obnovit ze zálohy historie, ale
@@ -88,6 +89,5 @@ není to nic, co byste zvládly samy.
 Nové nastaví správce webu. Nedá se nikde přečíst.
 
 **Objevila se hláška, že web nemá přístup k úložišti.**
-Vypršel přístupový token — ozvěte se správci webu, oprava je otázka pár
-minut. Web samotný běží dál a návštěvníci nic nepoznají, jen se dočasně
-nedají ukládat změny.
+Ozvěte se správci webu a pošlete mu přesné znění hlášky.
+Uložení znovu zkuste až po vyřešení problému.

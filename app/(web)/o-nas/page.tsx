@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import HlavickaStranky from "@/components/HlavickaStranky";
 import Tlacitko from "@/components/Tlacitko";
-import { oNas } from "@/lib/obsah";
+import { verejneStranky } from "@/lib/verejny-obsah";
 
 export const metadata: Metadata = {
   title: "O spolku a naší činnosti | Český svaz žen Novosedlice",
@@ -19,7 +19,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ONasStranka() {
+export default async function ONasStranka() {
+  const { oNas } = await verejneStranky();
   return (
     <>
       <HlavickaStranky nadnadpis="Kdo jsme" nadpis="O nás" />

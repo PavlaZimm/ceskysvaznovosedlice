@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { navigace, spolek } from "@/lib/obsah";
+import type { Stranky } from "@/lib/typy";
 
-export default function Hlavicka() {
+export default function Hlavicka({ navigace, spolek }: Pick<Stranky, "navigace" | "spolek">) {
   const cesta = usePathname();
   const [otevreno, setOtevreno] = useState(false);
 

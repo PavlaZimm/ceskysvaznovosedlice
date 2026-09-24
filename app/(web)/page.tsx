@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Tlacitko from "@/components/Tlacitko";
-import { akce, nadpisAkce, pocetAkci, pocetFotek } from "@/lib/fotky";
-import { spolek, uvod } from "@/lib/obsah";
+import { nadpisAkce } from "@/lib/fotky";
+import { verejneStranky, verejnaGalerie } from "@/lib/verejny-obsah";
 
 /* Tři fotky do hero koláže — vybrané ručně z fotogalerie. */
 const heroFotky = [
@@ -10,8 +10,11 @@ const heroFotky = [
   { src: "/fotky/20251209-160305.webp", alt: "Předvánoční posezení členek spolku" },
 ];
 
-export default function DomovskaStranka() {
-  const nejnovejsiAkce = akce[0];
+export default async function DomovskaStranka() {
+  const [{ spolek, uvod }, { akce }] = await Promise.all([verejneStranky(), verejnaGalerie()]);
+  const pocetAkci = akce.length;
+  const pocetFotek = akce.reduce((n, a) => n + a.fotky.length, 0);
+  const nejnovejsiAkce = akce.find(a => a.fotky.length > 0);
   const nejnovejsi = nejnovejsiAkce?.fotky.slice(0, 6) ?? [];
   const popisekAkce = nejnovejsiAkce ? nadpisAkce(nejnovejsiAkce) : "";
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import HlavickaStranky from "@/components/HlavickaStranky";
 import Tlacitko from "@/components/Tlacitko";
-import { tym } from "@/lib/obsah";
+import { verejneStranky } from "@/lib/verejny-obsah";
 
 export const metadata: Metadata = {
   title: "Výbor a členky | Český svaz žen Novosedlice",
@@ -27,7 +27,8 @@ function iniciely(jmeno: string): string {
     .join("");
 }
 
-export default function TymStranka() {
+export default async function TymStranka() {
+  const { tym } = await verejneStranky();
   return (
     <>
       <HlavickaStranky nadnadpis="Kdo to vede" nadpis="Náš tým" perex={tym.uvod} />

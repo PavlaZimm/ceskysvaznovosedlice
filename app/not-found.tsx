@@ -1,11 +1,13 @@
+import { verejneStranky } from "@/lib/verejny-obsah";
 import Hlavicka from "@/components/Hlavicka";
 import Paticka from "@/components/Paticka";
 import Tlacitko from "@/components/Tlacitko";
 
-export default function Nenalezeno() {
+export default async function Nenalezeno() {
+  const { spolek, navigace } = await verejneStranky();
   return (
     <>
-      <Hlavicka />
+      <Hlavicka spolek={spolek} navigace={navigace} />
       <main className="flex-1">
         <section className="mx-auto flex max-w-6xl flex-col items-center px-5 py-32 text-center sm:px-8">
       <p className="font-[family-name:var(--font-nadpis)] text-6xl text-okr">404</p>
@@ -19,7 +21,7 @@ export default function Nenalezeno() {
       </div>
         </section>
       </main>
-      <Paticka />
+      <Paticka spolek={spolek} navigace={navigace} />
     </>
   );
 }

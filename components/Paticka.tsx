@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { navigace, spolek } from "@/lib/obsah";
+import type { Stranky } from "@/lib/typy";
 
-export default function Paticka() {
+export default function Paticka({ navigace, spolek }: Pick<Stranky, "navigace" | "spolek">) {
   return (
     <footer className="mt-24 border-t border-linka bg-papir-tmavy/60">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">

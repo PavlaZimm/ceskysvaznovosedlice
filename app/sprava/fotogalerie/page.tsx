@@ -35,7 +35,7 @@ export default async function SpravaGalerie() {
                 {a.fotky[0] && (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
-                    src={`/sprava/nahled/${a.fotky[0].src.replace("/fotky/", "")}`}
+                    src={a.fotky[0].src}
                     alt=""
                     loading="lazy"
                     className="absolute inset-0 h-full w-full object-cover"

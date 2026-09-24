@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
 import Galerie from "@/components/Galerie";
 import HlavickaStranky from "@/components/HlavickaStranky";
-import { akce, pocetAkci, pocetFotek } from "@/lib/fotky";
+import { verejnaGalerie } from "@/lib/verejny-obsah";
 
-export const metadata: Metadata = {
+async function souhrn() {
+  const { akce } = await verejnaGalerie();
+  return { akce, pocetAkci: akce.length, pocetFotek: akce.reduce((n, a) => n + a.fotky.length, 0) };
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { pocetAkci, pocetFotek } = await souhrn();
+  return {
   title: "Fotogalerie z akcí | Český svaz žen Novosedlice",
   description:
     `${pocetFotek} fotografií ze ${pocetAkci} akcí našeho spolku v Novosedlicích — ` +
@@ -15,9 +22,11 @@ export const metadata: Metadata = {
     url: "/fotogalerie",
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Český svaz žen Novosedlice" }],
   },
-};
+  };
+}
 
-export default function FotogalerieStranka() {
+export default async function FotogalerieStranka() {
+  const { akce, pocetAkci, pocetFotek } = await souhrn();
   return (
     <>
       <HlavickaStranky

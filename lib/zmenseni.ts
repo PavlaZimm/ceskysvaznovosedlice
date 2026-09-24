@@ -31,7 +31,7 @@ export async function zmensiFotku(soubor: File): Promise<File> {
     platno.width = sirka;
     platno.height = vyska;
     const ctx = platno.getContext("2d");
-    if (!ctx) return soubor;
+    if (!ctx) { bitmapa.close(); return soubor; }
     ctx.drawImage(bitmapa, 0, 0, sirka, vyska);
     bitmapa.close();
 
@@ -60,8 +60,8 @@ export function rozdelDoDavek(soubory: File[]): File[][] {
   let velikost = 0;
 
   for (const s of soubory) {
-    // jedna fotka sama o sobě větší než limit — pošleme ji zvlášť
-    if (davka.length > 0 && velikost + s.size > LIMIT_DAVKY) {
+    if (s.size > LIMIT_DAVKY) throw new Error("Fotografie se nevejde do požadavku.");
+    if (davka.length > 0 && (velikost + s.size > LIMIT_DAVKY || davka.length >= 40)) {
       davky.push(davka);
       davka = [];
       velikost = 0;

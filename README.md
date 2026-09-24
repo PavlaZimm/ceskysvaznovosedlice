@@ -1,166 +1,33 @@
 # Český svaz žen — ZO Novosedlice
 
-Web spolku. Postaveno na Next.js 15 (App Router), Tailwind CSS 4 a TypeScriptu.
-Nasazuje se na Vercel.
+Web https://csznovosedlice.cz, Next.js 16, React 19, Tailwind CSS 4.
+Správa: https://csznovosedlice.cz/sprava. Návod pro výbor: [NAVOD-SPRAVA.md](NAVOD-SPRAVA.md).
 
-Nahrazuje původní web na Webnode (`cesky-svaz-zen-51b715.webnode.cz`) — všechny
-texty i fotografie jsou převzaté odtud.
+## Ukládání obsahu
 
----
+Texty, kontakty a galerie jsou v Neon Postgres. Nové fotografie se zmenšují na nejvýše 1920 px a ukládají do Vercel Blob. Původní fotografie zůstávají v `public/fotky`. Uložení ve správě obnoví cache veřejného webu, nevyžaduje commit ani nové nasazení.
 
-## Spuštění na vlastním počítači
+Každý zápis obsahu uchová předchozí verzi v `csz_content_history`. Podmínka na číslo revize zabrání přepsání souběžného zápisu. Smazání fotografie odstraní její odkaz z galerie; fyzický soubor zůstává pro případ obnovy. Historie v téže databázi není nezávislá záloha. Před většími zásahy exportujte databázi. Trvalé odstranění snímku musí správce provést i v Blob/Gitu a v historii.
 
-```bash
-npm install
-npm run dev
-```
+## Spuštění
 
-Web pak běží na <http://localhost:3000>.
+Použijte Node.js 24, `npm ci`, vytvořte `.env.local` podle `.env.example`, pak `npm run dev`. Bez DATABASE_URL běží lokální vývoj nad JSON soubory; na Vercelu je zápis bez databáze zakázán.
 
-## Nasazení
+Po propojení se správným projektem pomocí `vercel link` lze stáhnout vývojové přístupy: `vercel env pull .env.local`. Nikdy nedávejte produkční přístupy do preview. Projekt používá oddělené databáze a Blob úložiště pro produkci a preview/vývoj.
 
-Push do `main` → Vercel automaticky sestaví a nasadí. Žádné nastavení není
-potřeba, Vercel Next.js pozná sám.
+## Inicializace a nasazení
 
-### Doména
+1. Nastavte serverové proměnné DATABASE_URL, BLOB_READ_WRITE_TOKEN, SPRAVA_HESLO a SPRAVA_TAJEMSTVI. Veřejná NEXT_PUBLIC_URL_WEBU je https://csznovosedlice.cz.
+2. S přístupy správného prostředí spusťte `npm run db:init`. Vytvoří tabulky a vloží původní JSON pouze tam, kde obsah dosud neexistuje. Opakované spuštění obsah nepřepíše.
+3. Ověřte `npm test`, `npm run typecheck` a sestavení/preview na Vercelu.
+4. Push do main spouští produkční sestavení přes GitHub integraci Vercelu.
 
-`urlWebu` v `lib/obsah.ts` se odvodí sama: na Vercelu použije přidělenou adresu
-`*.vercel.app`, lokálně `localhost:3000`. Až budete mít vlastní doménu, nastavte
-na Vercelu proměnnou prostředí `NEXT_PUBLIC_URL_WEBU` (např.
-`https://csz-novosedlice.cz`) — do kódu není potřeba sahat.
+Přístupové údaje nepatří do Gitu, návodu pro veřejnost ani proměnných NEXT_PUBLIC_. Změna SPRAVA_HESLO zneplatní přihlášení po nasazení nové konfigurace. Přihlašování má omezení pokusů uložené v databázi.
 
-Používá se v `sitemap.xml`, `robots.txt`, canonical odkazech a v náhledech
-odkazů na sociálních sítích.
+## Obnova
 
----
+Správce může vybrat předchozí obsah z `csz_content_history` podle `key` a `revision` a obnovit jej do `csz_content` podmíněným UPDATE s aktuální revizí. Aktualizace musí zvýšit revision o 1; trigger zachová i nahrazený obsah. Po obnově obnovte cache novým nasazením nebo vyčkejte na běžnou revalidaci (5 minut). Obnovu nejprve ověřte v testovací databázi.
 
-## Správa obsahu
+## Údržba
 
-Web má vlastní správu na **`/sprava`** — přihlášení heslem, úprava textů,
-kontaktů a fotogalerie. Návod pro členky spolku je v
-**[NAVOD-SPRAVA.md](NAVOD-SPRAVA.md)**.
-
-### Jak to funguje
-
-Web nemá databázi. Obsah je v `obsah/stranky.json` a `obsah/galerie.json`,
-fotky v `public/fotky/`. Správa zapisuje přímo do repozitáře přes GitHub API
-(jeden commit i při nahrání dvaceti fotek), Vercel na commit zareaguje novým
-sestavením a změna je za necelou minutu na webu.
-
-Díky tomu zůstává veřejný web čistě statický, nic se neuspává a provoz stojí
-0 Kč.
-
-### Co je potřeba nastavit
-
-Na Vercelu (*Project → Settings → Environment Variables*):
-
-| Proměnná | K čemu |
-|---|---|
-| `SPRAVA_HESLO` | heslo do správy |
-| `GITHUB_TOKEN` | fine-grained token s právem *Contents: Read and write* na tento repozitář |
-| `GITHUB_REPO` | `PavlaZimm/ceskysvaznovosedlice` |
-| `GITHUB_BRANCH` | `main` |
-
-Vzor je v [.env.example](.env.example). **Bez `GITHUB_TOKEN` se změny ukládají
-jen na disk** — to je režim pro vývoj na vlastním počítači, ve správě se v něm
-nahoře zobrazí upozornění.
-
-Pro pokusy lokálně:
-
-```bash
-echo 'SPRAVA_HESLO=neco-tajneho' > .env.local && npm run dev
-```
-
-## Aby web někdo našel
-
-Technické SEO je hotové. Kroky, které je potřeba udělat mimo web (Search Console,
-odkaz z obecního webu, Facebook), jsou v **[SEO-KROKY.md](SEO-KROKY.md)**.
-
-## Kde co upravit
-
-| Co chci změnit | Soubor |
-|---|---|
-| Texty, adresa, e-mail, telefon, jména ve výboru | `lib/obsah.ts` |
-| Fotogalerie — názvy akcí, pořadí | `lib/fotky.ts` |
-| Fotografie | `public/fotky/` |
-| Barvy a písma | `app/globals.css` (sekce `@theme`) |
-| Položky v menu | `lib/obsah.ts` → `navigace` |
-
-### Změna textu
-
-Skoro všechny texty jsou v `lib/obsah.ts`. Stačí přepsat text v uvozovkách
-a uložit — projeví se všude, kde se používá (např. e-mail je zároveň
-v patičce, na kontaktu i v odkazu „napsat e-mail").
-
-### Doplnění názvů akcí ve fotogalerii
-
-V `lib/fotky.ts` má každá akce pole `nazev`, které je zatím prázdné — z fotek
-nešlo poznat, o jakou akci šlo. Když název doplníte, zobrazí se místo data:
-
-```ts
-{
-  datum: "2026-04-30",
-  nazev: "Pálení čarodějnic",        // ← dopsat
-  popis: "Tradiční setkání u ohně.",  // ← nepovinné, zobrazí se pod nadpisem
-  fotky: [ ... ],
-},
-```
-
-Když `nazev` zůstane prázdný, ukáže se datum („30. dubna 2026"). Nic se
-nerozbije.
-
-### Přidání nových fotek
-
-1. Zkopírujte soubory do `public/fotky/`.
-2. V `lib/fotky.ts` přidejte novou položku na **začátek** pole `akce`
-   (akce jsou řazené od nejnovější):
-
-```ts
-{
-  datum: "2026-06-15",
-  nazev: "Výlet do Litoměřic",
-  popis: "",
-  fotky: [
-    { src: "/fotky/nazev-souboru.webp", w: 1920, h: 1080 },
-  ],
-},
-```
-
-`w` a `h` jsou rozměry fotky v pixelech. Musí odpovídat skutečnosti, jinak
-bude fotka v mřížce deformovaná.
-
----
-
-## Struktura
-
-```
-app/            stránky (každá složka = jedna adresa)
-  page.tsx        úvod
-  o-nas/          o nás
-  fotogalerie/    fotogalerie
-  tym/            tým
-  kontakt/        kontakt
-  layout.tsx      společný obal (hlavička, patička, SEO)
-  globals.css     barvy, písma, základní styly
-  sprava/         správa webu (nezobrazuje se ve vyhledávačích)
-components/     hlavička, patička, galerie s lightboxem, tlačítko
-  sprava/         formuláře správy
-lib/            obsah.ts a fotky.ts (čtení obsahu), typy.ts,
-                uloziste.ts (zápis do GitHubu), auth.ts (přihlášení)
-obsah/          texty a galerie jako JSON — tohle správa upravuje
-public/fotky/   fotografie
-```
-
-## Co web umí
-
-- 5 stránek, všechny se generují staticky (rychlé načtení)
-- Fotogalerie: 106 fotek ve 14 akcích, lightbox s ovládáním klávesnicí
-  (šipky, Esc)
-- Responzivní — mobil, tablet, počítač
-- SEO: unikátní titulky (40–65 znaků) a popisky (140–155 znaků) na každé
-  stránce, canonical odkazy, Open Graph i s náhledovým obrázkem (`public/og.jpg`),
-  `sitemap.xml`, `robots.txt`, strukturovaná data schema.org NGO včetně adresy,
-  souřadnic a působnosti
-- ALT text u všech 106 fotek — odvozuje se z názvu akce, takže se zlepší sám,
-  jakmile v `lib/fotky.ts` doplníte názvy
-- Bez cookies a bez služeb třetích stran → není potřeba cookie lišta
+Správa mění živou databázi, JSON v repozitáři je počáteční obsah. Vzhled upravujte v app/ a components/. Sledujte využití Neon a Blob ve Vercelu; bezplatné tarify mají limity. Staré a nepoužité snímky se automaticky nemažou. Odkazy a kroky pro propagaci jsou v SEO-KROKY.md.
