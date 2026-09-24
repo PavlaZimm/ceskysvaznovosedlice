@@ -29,12 +29,17 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
   function proved(akce: () => Promise<{ chyba: string } | void>) {
     setStavAkce(null);
     start(async () => {
-      const v = await akce();
-      if (v?.chyba) setStavAkce({ chyba: v.chyba });
+      try {
+        const v = await akce();
+        if (v?.chyba) setStavAkce({ chyba: v.chyba });
+      } catch {
+        setStavAkce({ chyba: "Změna se nepodařila. Obnovte stránku a zkuste to znovu." });
+      }
     });
   }
   const vstupSouboru = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const nahravani = useRef(false);
 
   /**
    * Nahrání fotek. Každou nejdřív zmenšíme přímo tady v prohlížeči a teprve
@@ -42,12 +47,14 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
    * příliš velká a nahrávání by selhalo.
    */
   async function nahraj(soubory: File[]) {
+    if (nahravani.current || pracuje || cekaUprava) return;
     const obrazky = soubory.filter((f) => f.type.startsWith("image/"));
     if (obrazky.length === 0) {
       setStavNahrani({ chyba: "Nevybrali jste žádnou fotku." });
       return;
     }
 
+    nahravani.current = true;
     setStavNahrani(null);
     setPrubeh({ faze: "Připravuji fotky", hotovo: 0, celkem: obrazky.length });
 
@@ -57,8 +64,17 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
       setPrubeh({ faze: "Připravuji fotky", hotovo: i + 1, celkem: obrazky.length });
     }
 
+    const prilisVelke = zmensene.filter(f => f.size > 3_000_000);
+    if (prilisVelke.length) {
+      setPrubeh(null);
+      nahravani.current = false;
+      setStavNahrani({ chyba: `Fotku „${prilisVelke[0].name}“ se nepodařilo zmenšit. Uložte ji jako JPG nebo vyberte jinou. Žádné fotky se zatím neodeslaly.` });
+      if (vstupSouboru.current) vstupSouboru.current.value = "";
+      return;
+    }
     const davky = rozdelDoDavek(zmensene);
     let nahrano = 0;
+    let preskoceno = 0;
     let chyba: string | null = null;
 
     for (const davka of davky) {
@@ -73,7 +89,8 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
           chyba = v.chyba;
           break;
         }
-        nahrano += davka.length;
+        nahrano += v.nahrano ?? 0;
+        preskoceno += v.preskoceno ?? 0;
       } catch {
         chyba =
           "Nahrávání se přerušilo. Zkontrolujte prosím připojení k internetu " +
@@ -83,6 +100,7 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
     }
 
     setPrubeh(null);
+    nahravani.current = false;
     if (chyba) {
       setStavNahrani({
         chyba:
@@ -91,7 +109,7 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
             : chyba,
       });
     } else {
-      setStavNahrani({ hotovo: `Nahráno ${nahrano} fotek. Na webu budou do minuty.` });
+      setStavNahrani({ hotovo: `Nahráno ${nahrano} fotek. Jsou zveřejněné na webu.${preskoceno ? ` ${preskoceno} snímků se nepodařilo přečíst; zkuste je uložit jako JPG.` : ""}` });
     }
     if (vstupSouboru.current) vstupSouboru.current.value = "";
     router.refresh();
@@ -137,7 +155,7 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
             className="w-full rounded-xl border border-linka bg-papir px-4 py-3 outline-none focus:border-vino" />
         </div>
         <div className="mt-4"><Hlaska stav={stavUpravy} /></div>
-        <div className="mt-5"><Tlacitko ceka={cekaUprava}>Uložit údaje</Tlacitko></div>
+        <div className="mt-5"><Tlacitko ceka={cekaUprava} disabled={cekaNahrani || pracuje}>Uložit údaje</Tlacitko></div>
       </form>
 
       {/* --- nahrání fotek --- */}
@@ -163,6 +181,7 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
             type="file"
             accept="image/*"
             multiple
+            disabled={cekaNahrani || pracuje || cekaUprava}
             className="sr-only"
             onChange={(e) => void nahraj(Array.from(e.currentTarget.files ?? []))}
           />
@@ -208,11 +227,10 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
           {a.fotky.map((f, i) => (
             <li key={f.src} className="overflow-hidden rounded-xl border border-linka bg-papir">
               <div className="relative aspect-square bg-papir-tmavy">
-                {/* Vlastní náhled — viz app/sprava/nahled. Nové fotky jsou
-                    vidět hned, ještě než se web znovu sestaví. */}
+                {/* Veřejný náhled z lokální galerie nebo Blob úložiště. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`/sprava/nahled/${f.src.replace("/fotky/", "")}`}
+                  src={f.src}
                   alt=""
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover"
@@ -222,20 +240,20 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
                 <div className="flex gap-1">
                   <Sipka
                     smer="vlevo"
-                    vypnuto={i === 0 || pracuje}
+                    vypnuto={i === 0 || pracuje || cekaNahrani || cekaUprava}
                     onClick={() => proved(() => presunFotku(a.id, f.src, -1))}
                   />
                   <Sipka
                     smer="vpravo"
-                    vypnuto={i === a.fotky.length - 1 || pracuje}
+                    vypnuto={i === a.fotky.length - 1 || pracuje || cekaNahrani || cekaUprava}
                     onClick={() => proved(() => presunFotku(a.id, f.src, 1))}
                   />
                 </div>
                 <button
                   type="button"
-                  disabled={pracuje}
+                  disabled={pracuje || cekaNahrani || cekaUprava}
                   onClick={() => {
-                    if (confirm("Opravdu smazat tuhle fotku? Nejde to vzít zpět.")) {
+                    if (confirm("Opravdu smazat tuhle fotku? Obnovu může provést správce webu.")) {
                       proved(() => smazFotku(a.id, f.src));
                     }
                   }}
@@ -253,13 +271,13 @@ export default function DetailAkce({ akce: a }: { akce: Akce }) {
       <div className="mt-16 rounded-2xl border border-vino/25 bg-vino/5 p-6">
         <h2 className="text-lg">Smazat celou akci</h2>
         <p className="mt-2 text-sm leading-relaxed text-inkoust-50">
-          Smaže se akce i všech {a.fotky.length} fotek. Nejde to vzít zpět.
+          Smaže se akce i všech {a.fotky.length} fotek. Obnovu může provést správce webu.
         </p>
         <button
           type="button"
-          disabled={pracuje}
+          disabled={pracuje || cekaNahrani || cekaUprava}
           onClick={() => {
-            if (confirm(`Opravdu smazat akci i s ${a.fotky.length} fotkami? Nejde to vzít zpět.`)) {
+            if (confirm(`Opravdu smazat akci i s ${a.fotky.length} fotkami? Obnovu může provést správce webu.`)) {
               proved(() => smazAkci(a.id));
             }
           }}

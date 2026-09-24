@@ -1,13 +1,16 @@
 import Hlavicka from "@/components/Hlavicka";
 import Paticka from "@/components/Paticka";
-import { spolek, urlWebu } from "@/lib/obsah";
+import { urlWebu } from "@/lib/obsah";
+
+import { verejneStranky } from "@/lib/verejny-obsah";
 
 /** Layout veřejné části webu. Správa na /sprava ho nepoužívá. */
-export default function WebLayout({
+export default async function WebLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { spolek, navigace } = await verejneStranky();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "NGO",
@@ -57,14 +60,14 @@ export default function WebLayout({
       >
         Přeskočit na obsah
       </a>
-      <Hlavicka />
+      <Hlavicka spolek={spolek} navigace={navigace} />
       <main id="obsah" className="flex-1">
         {children}
       </main>
-      <Paticka />
+      <Paticka spolek={spolek} navigace={navigace} />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
     </>
   );

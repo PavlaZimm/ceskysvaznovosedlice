@@ -58,9 +58,8 @@ export default async function SpravaRozcestnik() {
       <div className="mt-12 rounded-2xl border border-linka bg-papir-tmavy/50 p-7">
         <h2 className="text-lg">Jak to funguje</h2>
         <p className="mt-3 leading-relaxed text-inkoust-50">
-          Po uložení se změna projeví na webu přibližně do minuty — web se mezitím
-          sám znovu sestaví. Když se změna hned neukáže, chvíli počkejte
-          a obnovte stránku.
+          Po uložení jsou změny zveřejněné. Otevřenou stránku webu obnovte,
+          abyste viděly nový obsah. U fotek počkejte na potvrzení nahrání.
         </p>
       </div>
     </>

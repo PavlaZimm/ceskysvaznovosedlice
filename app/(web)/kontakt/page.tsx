@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import HlavickaStranky from "@/components/HlavickaStranky";
-import { kontakt, spolek } from "@/lib/obsah";
+import { verejneStranky } from "@/lib/verejny-obsah";
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  const { spolek } = await verejneStranky();
+  return {
   title: `Kontakt | Český svaz žen Novosedlice, ${spolek.ulice}`,
   description:
     `Napište na ${spolek.email} nebo zavolejte ${spolek.telefon}. Najdete nás ` +
@@ -15,7 +17,8 @@ export const metadata: Metadata = {
     url: "/kontakt",
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Český svaz žen Novosedlice" }],
   },
-};
+  };
+}
 
 const Obalka = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -37,7 +40,8 @@ const Pin = () => (
   </svg>
 );
 
-export default function KontaktStranka() {
+export default async function KontaktStranka() {
+  const { kontakt, spolek } = await verejneStranky();
   return (
     <>
       <HlavickaStranky nadnadpis="Ozvěte se" nadpis="Kontakt" perex={kontakt.uvod} />

@@ -15,7 +15,7 @@ const PLATNOST_DNI = 30;
 function tajemstvi(): string {
   const t = process.env.SPRAVA_TAJEMSTVI ?? process.env.SPRAVA_HESLO;
   if (!t) throw new Error("Chybí SPRAVA_HESLO / SPRAVA_TAJEMSTVI.");
-  return t;
+  return `${t}:${process.env.SPRAVA_HESLO ?? ""}`;
 }
 
 function podepis(data: string): string {
@@ -64,7 +64,9 @@ export async function jePrihlasen(): Promise<boolean> {
     const c = await cookies();
     const hodnota = c.get(COOKIE)?.value;
     if (!hodnota) return false;
-    const [platiDo, nahoda, podpis] = hodnota.split(".");
+    const casti = hodnota.split(".");
+    if (casti.length !== 3) return false;
+    const [platiDo, nahoda, podpis] = casti;
     if (!platiDo || !nahoda || !podpis) return false;
     if (!shodujeSe(podpis, podepis(`${platiDo}.${nahoda}`))) return false;
     return Number(platiDo) > Date.now();

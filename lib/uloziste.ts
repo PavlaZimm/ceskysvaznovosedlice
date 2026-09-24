@@ -1,221 +1,100 @@
-/**
- * Ukládání obsahu.
- *
- * Web nemá databázi — texty i fotky se ukládají přímo do repozitáře na
- * GitHubu. Po zápisu Vercel automaticky sestaví web znovu, takže se změna
- * na webu objeví přibližně do minuty.
- *
- * Když není nastavený GITHUB_TOKEN (typicky při vývoji na vlastním počítači),
- * zapisuje se místo toho rovnou na disk.
- */
+/** Obsah v Neonu, nové fotografie ve Vercel Blob. Přístupy zůstávají na serveru. */
 import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { put } from "@vercel/blob";
+import { db, pouzivaDatabazi } from "./db";
 import type { Galerie, Stranky } from "./typy";
 
-const TOKEN = process.env.GITHUB_TOKEN;
-const REPO = process.env.GITHUB_REPO ?? "PavlaZimm/ceskysvaznovosedlice";
-const VETEV = process.env.GITHUB_BRANCH ?? "main";
-const API = "https://api.github.com";
+export { pouzivaDatabazi } from "./db";
+export const chybiPristupKUlozisti = Boolean(process.env.VERCEL) && !pouzivaDatabazi;
+export const chybiUlozisteFotek = pouzivaDatabazi && !(
+  process.env.BLOB_READ_WRITE_TOKEN || (process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN)
+);
 
-export const zapisujeDoGitHubu = Boolean(TOKEN);
+export type Soubor = { cesta: string; obsah: string | Buffer };
+export type Zmena = { zapis?: Soubor[]; zprava: string; verze: number };
+const DOKUMENTY = ["obsah/stranky.json", "obsah/galerie.json"];
 
-/**
- * Ostrý provoz bez tokenu = ukládání vůbec nemůže fungovat (Vercel má
- * souborový systém jen pro čtení). Správa na to musí upozornit dřív, než
- * někdo stráví půl hodiny psaním textu, který se neuloží.
- */
-export const chybiPristupKUlozisti = !TOKEN && Boolean(process.env.VERCEL);
-
-/** Jeden soubor k zápisu. Text, nebo binární data (fotky). */
-export type Soubor = {
-  /** Cesta v repozitáři, např. "obsah/galerie.json" nebo "public/fotky/x.webp". */
-  cesta: string;
-  obsah: string | Buffer;
-};
-
-/** Soubory ke smazání se předávají jako pole cest. */
-export type Zmena = {
-  zapis?: Soubor[];
-  smaz?: string[];
-  zprava: string;
-};
-
-async function gh(cesta: string, init?: RequestInit) {
-  const r = await fetch(`${API}${cesta}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...(init?.headers ?? {}),
-    },
-    cache: "no-store",
-  });
-  if (!r.ok) {
-    const telo = await r.text();
-    throw new Error(`GitHub ${r.status}: ${telo.slice(0, 300)}`);
+function overDokument(cesta: string) {
+  if (!DOKUMENTY.includes(cesta)) throw new Error("Neplatný dokument.");
+}
+function naDisku(cesta: string) {
+  if (!DOKUMENTY.includes(cesta) && !/^public\/fotky\/[a-zA-Z0-9_-]+\.(webp|jpe?g|png)$/.test(cesta)) {
+    throw new Error("Neplatná cesta.");
   }
-  return r.json();
+  return DOKUMENTY.includes(cesta)
+    ? path.join(process.cwd(), "obsah", path.basename(cesta))
+    : path.join(process.cwd(), "public", "fotky", path.basename(cesta));
 }
 
-/**
- * Zapíše (a případně smaže) sadu souborů jedním commitem.
- *
- * Používá Git Data API, aby i nahrání dvaceti fotek najednou znamenalo
- * jediný commit a jediný build na Vercelu — ne dvacet.
- */
-async function commitDoGitHubu({ zapis = [], smaz = [], zprava }: Zmena) {
-  const ref = await gh(`/repos/${REPO}/git/ref/heads/${VETEV}`);
-  const hlavaSha: string = ref.object.sha;
-  const commit = await gh(`/repos/${REPO}/git/commits/${hlavaSha}`);
-  const zakladStromu: string = commit.tree.sha;
+export async function nactiProUpravu<T>(cesta: string): Promise<{ data: T; verze: number }> {
+  overDokument(cesta);
+  if (!pouzivaDatabazi) {
+    return { data: JSON.parse(await fs.readFile(naDisku(cesta), "utf8")) as T, verze: 0 };
+  }
+  const radky = await db()`SELECT data, revision FROM csz_content WHERE key = ${cesta}`;
+  if (!radky[0]) throw new Error("Chybí počáteční obsah. Spusťte npm run db:init.");
+  return { data: radky[0].data as T, verze: Number(radky[0].revision) };
+}
 
-  const polozky: Record<string, unknown>[] = [];
+/** Nejprve uloží fotky, potom jedním podmíněným zápisem zveřejní nový obsah. */
+export async function uloz({ zapis = [], zprava, verze }: Zmena) {
+  if (chybiPristupKUlozisti) throw new Error("Úložiště není připojeno.");
+  const dokumenty = zapis.filter(s => DOKUMENTY.includes(s.cesta));
+  if (dokumenty.length !== 1) throw new Error("Očekáván jeden dokument.");
+  const dokument = dokumenty[0];
+  const data = JSON.parse(String(dokument.obsah));
+  const fotky = zapis.filter(s => !DOKUMENTY.includes(s.cesta));
+  if (fotky.length && dokument.cesta !== "obsah/galerie.json") throw new Error("Neplatná galerie.");
 
-  for (const s of zapis) {
-    const jeBinarni = Buffer.isBuffer(s.obsah);
-    const blob = await gh(`/repos/${REPO}/git/blobs`, {
-      method: "POST",
-      body: JSON.stringify({
-        content: jeBinarni
-          ? (s.obsah as Buffer).toString("base64")
-          : (s.obsah as string),
-        encoding: jeBinarni ? "base64" : "utf-8",
-      }),
+  if (!pouzivaDatabazi) {
+    // Vývojový režim. Fotky fyzicky nemažeme: mohou být použité i na úvodní stránce.
+    for (const s of zapis) {
+      const cil = naDisku(s.cesta);
+      await fs.mkdir(path.dirname(cil), { recursive: true });
+      await fs.writeFile(cil, s.obsah);
+    }
+    return;
+  }
+
+  if (fotky.length && chybiUlozisteFotek) throw new Error("Úložiště fotografií není připojeno.");
+  for (const s of fotky) {
+    naDisku(s.cesta); // ověření povoleného názvu
+    if (!Buffer.isBuffer(s.obsah)) throw new Error("Neplatná fotografie.");
+    const blob = await put(`novosedlice/${s.cesta.slice("public/".length)}`, s.obsah, {
+      access: "public", contentType: "image/webp", addRandomSuffix: true,
     });
-    polozky.push({ path: s.cesta, mode: "100644", type: "blob", sha: blob.sha });
+    const puvodni = s.cesta.slice("public".length);
+    for (const akce of (data as Galerie).akce) {
+      for (const fotka of akce.fotky) if (fotka.src === puvodni) fotka.src = blob.url;
+    }
   }
 
-  // sha: null ve stromu znamená smazání souboru
-  for (const c of smaz) {
-    polozky.push({ path: c, mode: "100644", type: "blob", sha: null });
-  }
-
-  if (polozky.length === 0) return;
-
-  const strom = await gh(`/repos/${REPO}/git/trees`, {
-    method: "POST",
-    body: JSON.stringify({ base_tree: zakladStromu, tree: polozky }),
-  });
-
-  const novyCommit = await gh(`/repos/${REPO}/git/commits`, {
-    method: "POST",
-    body: JSON.stringify({
-      message: zprava,
-      tree: strom.sha,
-      parents: [hlavaSha],
-    }),
-  });
-
-  await gh(`/repos/${REPO}/git/refs/heads/${VETEV}`, {
-    method: "PATCH",
-    body: JSON.stringify({ sha: novyCommit.sha }),
-  });
+  // Souběžná úprava se nesmí tiše přepsat. Historii atomicky ukládá trigger.
+  const radky = await db()`
+    UPDATE csz_content SET data = ${JSON.stringify(data)}::jsonb,
+      revision = revision + 1, updated_at = now(), message = ${zprava}
+    WHERE key = ${dokument.cesta} AND revision = ${verze}
+    RETURNING revision
+  `;
+  if (!radky.length) throw new Error("KONFLIKT_VERZE");
+  // Smazání v galerii odstraní odkaz, soubor zůstane pro obnovu z historie.
+  // Při nejistém výsledku DB požadavku nemažeme upload: zápis mohl být potvrzen.
 }
 
-/**
- * Převede cestu v repozitáři na cestu na disku.
- *
- * Kořenová složka je vždy zapsaná natvrdo ("obsah" / "public"), aby Turbopack
- * nemusel při sestavení sledovat celý projekt — jinak by se do nasazeného
- * balíku přibalily i všechny fotky.
- */
-function naDisku(cesta: string): string | null {
-  if (cesta.startsWith("obsah/")) {
-    return path.join(process.cwd(), "obsah", cesta.slice("obsah/".length));
-  }
-  if (cesta.startsWith("public/")) {
-    return path.join(process.cwd(), "public", cesta.slice("public/".length));
-  }
-  return null;
-}
-
-async function zapisNaDisk({ zapis = [], smaz = [] }: Zmena) {
-  for (const s of zapis) {
-    const cil = naDisku(s.cesta);
-    if (!cil) continue;
-    await fs.mkdir(path.dirname(cil), { recursive: true });
-    await fs.writeFile(cil, s.obsah as Buffer | string);
-  }
-  for (const c of smaz) {
-    const cil = naDisku(c);
-    if (cil) await fs.rm(cil, { force: true });
-  }
-}
-
-/** Uloží změnu — na Vercelu do GitHubu, lokálně na disk. */
-export async function uloz(zmena: Zmena): Promise<void> {
-  if (zapisujeDoGitHubu) await commitDoGitHubu(zmena);
-  else await zapisNaDisk(zmena);
-}
-
-/** Načte aktuální obsah souboru z repozitáře (resp. z disku). */
-export async function nacti(cesta: string): Promise<string> {
-  if (!zapisujeDoGitHubu) {
-    const cil = naDisku(cesta);
-    if (!cil) throw new Error(`Neznámá cesta: ${cesta}`);
-    return fs.readFile(cil, "utf-8");
-  }
-  const d = await gh(
-    `/repos/${REPO}/contents/${encodeURI(cesta)}?ref=${VETEV}`,
-  );
-  return Buffer.from(d.content, "base64").toString("utf-8");
-}
-
-/**
- * Živé načtení obsahu — pro stránky správy.
- *
- * Veřejný web čte obsah z `obsah/*.json` napřímo (zapeče se do buildu, je to
- * rychlé). Správa ale musí vidět aktuální stav hned po uložení, tedy ještě
- * než Vercel stihne web znovu sestavit — proto čte přes GitHub API.
- */
 export async function nactiStranky(): Promise<Stranky> {
-  return JSON.parse(await nacti("obsah/stranky.json")) as Stranky;
+  return (await nactiProUpravu<Stranky>("obsah/stranky.json")).data;
 }
-
 export async function nactiGalerii(): Promise<Galerie> {
-  return JSON.parse(await nacti("obsah/galerie.json")) as Galerie;
+  return (await nactiProUpravu<Galerie>("obsah/galerie.json")).data;
 }
-
-/**
- * Totéž, ale bez pádu. Když se obsah nepodaří načíst (typicky vypršelý
- * token), stránka správy se má zobrazit s vysvětlením — ne spadnout na
- * bílou chybovou hlášku.
- */
 export async function zkusNacistStranky(): Promise<Stranky | null> {
-  try {
-    return await nactiStranky();
-  } catch (e) {
-    console.error("Správa: nepodařilo se načíst texty —", e);
-    return null;
-  }
+  try { return await nactiStranky(); } catch { return null; }
 }
-
 export async function zkusNacistGalerii(): Promise<Galerie | null> {
-  try {
-    return await nactiGalerii();
-  } catch (e) {
-    console.error("Správa: nepodařilo se načíst galerii —", e);
-    return null;
-  }
+  try { return await nactiGalerii(); } catch { return null; }
 }
-
-/** Načte binární soubor (fotku) — z GitHubu, nebo z disku. */
 export async function nactiBinarne(cesta: string): Promise<Buffer | null> {
-  try {
-    if (!zapisujeDoGitHubu) {
-      const cil = naDisku(cesta);
-      return cil ? await fs.readFile(cil) : null;
-    }
-    const d = await gh(`/repos/${REPO}/contents/${encodeURI(cesta)}?ref=${VETEV}`);
-    // Velké soubory vrací GitHub bez obsahu — stáhneme je přes download_url
-    if (!d.content && d.download_url) {
-      const r = await fetch(d.download_url, { cache: "no-store" });
-      return r.ok ? Buffer.from(await r.arrayBuffer()) : null;
-    }
-    return Buffer.from(d.content, "base64");
-  } catch {
-    return null;
-  }
+  try { return await fs.readFile(naDisku(cesta)); } catch { return null; }
 }

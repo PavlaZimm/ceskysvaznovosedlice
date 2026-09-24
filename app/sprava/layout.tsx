@@ -1,7 +1,8 @@
+export const maxDuration = 60;
 import type { Metadata } from "next";
 import Link from "next/link";
 import { jePrihlasen } from "@/lib/auth";
-import { chybiPristupKUlozisti, zapisujeDoGitHubu } from "@/lib/uloziste";
+import { chybiPristupKUlozisti, pouzivaDatabazi, chybiUlozisteFotek } from "@/lib/uloziste";
 import { odhlaseni } from "./akce";
 
 export const dynamic = "force-dynamic";
@@ -72,12 +73,17 @@ export default async function SpravaLayout({
         </p>
       )}
 
-      {prihlasen && !zapisujeDoGitHubu && !chybiPristupKUlozisti && (
+      {prihlasen && !pouzivaDatabazi && !chybiPristupKUlozisti && (
         <p className="bg-okr/15 px-5 py-2.5 text-center text-sm text-inkoust sm:px-8">
           Zkušební režim — změny se ukládají jen na tento počítač, ne na web.
         </p>
       )}
 
+      {prihlasen && chybiUlozisteFotek && (
+        <p className="bg-vino/10 px-5 py-3 text-center text-sm text-vino">
+          Nahrávání fotek zatím není připravené. Ozvěte se správci webu. Texty můžete upravovat.
+        </p>
+      )}
       <main className="mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
         {children}
       </main>
