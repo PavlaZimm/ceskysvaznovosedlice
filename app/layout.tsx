@@ -49,10 +49,10 @@ export const metadata: Metadata = {
     ],
   },
   twitter: { card: "summary_large_image", images: ["/og.jpg"] },
+  // Bez index/follow: stránky jsou indexovatelné i tak a 404 si od Next.js
+  // nese vlastní noindex, se kterým by se výslovné "index" hádalo.
   robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+    googleBot: { "max-image-preview": "large" },
   },
 };
 
